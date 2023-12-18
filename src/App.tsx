@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
-import SoundEngine from "./SoundEngine";
 
 interface stateSetup {
   hh: Array<boolean>;
@@ -47,7 +46,6 @@ const DrumRow = ({ data }: { data: drumRowProps }) => {
   const setRowState = (row: Array<boolean>) => {
     data.setCurrentState(
       data.currentState.map((iterateRow, iedx) => {
-        console.log(`map idx`, iedx);
         if (iedx === data.idx) {
           return row;
         } else return iterateRow;
@@ -78,10 +76,10 @@ const DrumRow = ({ data }: { data: drumRowProps }) => {
         </div>
         <div className="flex flex-row gap-5 items-center">
           {rowState.map((isOn, idx) => {
-            if (idx === data.step && isOn) {
-              data.playSound();
-              console.log(`playsoudn`, data.playSound);
-            }
+            // if (idx === data.step && isOn) {
+            //   data.playSound();
+            //   console.log(`sound playing, idx`, idx);
+            // }
             const toggled = rowState
               .slice(0, idx)
               .concat(!isOn)
@@ -112,73 +110,125 @@ const DrumRow = ({ data }: { data: drumRowProps }) => {
 
 function App() {
   const audioContext = new AudioContext();
+  const [loading, setLoading] = useState(true);
   const [sourceBuffers, setSourceBuffers] = useState<Array<AudioBuffer>>([]);
+  const [soundNames, setSoundNames] = useState<Array<string>>([]);
+  const [playing, setPlaying] = useState(false);
   useEffect(() => {
-    const loadFiles = async (fileName: string) => {
-      const audioBuff = await fetch(`./${fileName}.wav`)
-        .then((response) => response.arrayBuffer())
-        .then((buffer) => audioContext.decodeAudioData(buffer));
-      sourceBuffers.push(audioBuff);
-      setSourceBuffers(sourceBuffers);
-    };
-    loadFiles("hhclosed");
-    loadFiles("kick");
-    // loadFiles("clap");
-    // loadFiles("snare");
+    console.log(`soundNames`, soundNames);
+    setLoading(false);
+  }, [soundNames]);
+  useEffect(() => {
+    if (sourceBuffers.length < 4) {
+      const loadFiles = async (fileNames: string[]) => {
+        fileNames.map(async (fileName: string) => {
+          const audioBuff = await fetch(`./${fileName}.wav`)
+            .then((response) => response.arrayBuffer())
+            .then((buffer) => audioContext.decodeAudioData(buffer));
+          if (!sourceBuffers.find((e) => e.length === audioBuff.length)) {
+            sourceBuffers.push(audioBuff);
+            soundNames.push(fileName);
+          }
+        });
+        setSourceBuffers(sourceBuffers);
+        setSoundNames(soundNames);
+      };
+      loadFiles(["hhclosed", "kick", "snare", "clap"]);
+    }
   });
 
   const [state, setState] = useState<Array<Array<boolean>>>([
-    [false, false, false],
+    [false, false, false, false],
+    [false, false, false, false],
+    [false, false, false, false],
+    [false, false, false, false],
   ]);
 
-  const soundIndexes = [""];
-  const [bpm, setBpm] = useState(100);
+  const [bpm, setBpm] = useState(180);
   const [tmpBpm, setTmpBpm] = useState(0);
 
-  const [step, setStep] = useState<Array<number>>([0]);
-  useEffect(() => {
-    const stepInterval = setInterval(() => {
+  const playSound = (idx: number) => {
+    // if (buffer === undefined) return;
+    const buffer = sourceBuffers[idx];
+    var sourceSound = audioContext.createBufferSource(); // creates a sound source
+    sourceSound.buffer = buffer; // tell the source which sound to play
+    sourceSound.connect(audioContext.destination); // connect the source to the context's destination (the speakers)
+    sourceSound.start(); // play the source now
+    sourceSound.loop = false;
+    // sourceSound.stop(audioContext.currentTime + 0.5);
+  };
+  const [step, setStep] = useState<Array<number>>([0, 0, 0, 0]);
+
+  const reset = useRef<() => void>();
+
+  const stepInterval = () => {
+    setPlaying(true);
+    audioContext.resume();
+    console.log(`source buf`, sourceBuffers);
+    console.log(`soudn names`, soundNames);
+
+    const sI = setInterval(() => {
+      // playSound(sourceBuffers.at(1), 0);
       setStep((t) =>
         t.map((stepN, idx) => {
           const maxIdx = idx >= state.length ? 1 : state[idx].length;
-          return stepN + 1 >= maxIdx ? 0 : stepN + 1;
+          const nextVal = stepN + 1 >= maxIdx ? 0 : stepN + 1;
+          if (state[idx][nextVal]) {
+            // console.log(`play sound`, state);
+            playSound(idx);
+          }
+          return nextVal;
         })
       );
     }, (1 / (bpm / 60)) * 1000);
-    return () => {
-      clearInterval(stepInterval);
+    reset.current = () => {
+      setStep((t) => t.map((e) => 0));
+      setPlaying(false);
+      audioContext.suspend();
+      clearInterval(sI);
     };
-  }, [bpm, state]);
+  };
+
+  // useEffect(() => {
+  //   const stepInterval = setInterval(() => {
+  //     // playSound(sourceBuffers.at(1), 0);
+  //     setStep((t) =>
+  //       t.map((stepN, idx) => {
+  //         const maxIdx = idx >= state.length ? 1 : state[idx].length;
+  //         const nextVal = stepN + 1 >= maxIdx ? 0 : stepN + 1;
+  //         if (state[idx][nextVal]) {
+  //           // console.log(`play sound`, state);
+  //           playSound();
+  //         }
+  //         return nextVal;
+  //       })
+  //     );
+  //   }, (1 / (bpm / 60)) * 1000);
+  //   reset.current = () => clearInterval(stepInterval);
+  //   return () => {
+  //     clearInterval(stepInterval);
+  //   };
+  // }, [bpm, state]);
 
   const handleOnChange = (event: any) => {
     const value = event.target.value;
     setTmpBpm(value);
   };
 
-  const sounds = [
-    "closed high hat",
-    "kick drum",
-    "snare drum",
-    "tom",
-    "open high hat",
-  ];
-  const playSound = (bufferIdx: number, time: number) => {
-    const buffer = sourceBuffers[bufferIdx];
-    var sourceSound = audioContext.createBufferSource(); // creates a sound source
-    sourceSound.buffer = buffer; // tell the source which sound to play
-    sourceSound.connect(audioContext.destination); // connect the source to the context's destination (the speakers)
-    console.log(`source soudn`, sourceSound);
-    sourceSound.start(); // play the source now
-    sourceSound.loop = false;
-    // sourceSound.stop(audioContext.currentTime + 0.5);
-  };
-
-  return (
+  return loading ? (
+    <div>LOADING</div>
+  ) : (
     <div className="w-screen h-screen bg-blue-200 flex justify-center">
       {/* <div
+        className="w-4 h-4 bg-blue-500"
+        onClick={() => {
+          stepInterval();
+        }}
+      ></div>
+      <div
         className="w-4 h-4 bg-red-500"
         onClick={() => {
-          playSound(sourceBuffers[0], 0);
+          reset.current && reset.current();
         }}
       ></div> */}
       <div className="w-[525px] flex flex-col grow-0 items-center justify-center">
@@ -195,23 +245,37 @@ function App() {
             className="w-4 h-4 bg-black"
           ></button>
         </div>
+        <button
+          className={`w-28 h-16 ${
+            playing ? "bg-gray-500" : "bg-green-500"
+          } justify-center items-center flex`}
+          onClick={() => {
+            stepInterval();
+          }}
+          disabled={playing}
+        >
+          play!
+        </button>
         {state.map((e, idx) => {
           return (
             <DrumRow
               key={idx}
               data={{
                 idx: idx,
-                title: sounds[idx],
+                title: soundNames[idx],
                 sound: "hello",
                 currentState: state,
-                setCurrentState: setState,
+                setCurrentState: (arg0: boolean[][]) => {
+                  reset.current && reset.current();
+                  setState(arg0);
+                },
                 step: step[idx],
-                playSound: () => playSound(idx, 0),
+                playSound: () => playSound(1),
               }}
             />
           );
         })}
-        <div
+        {/* <div
           className="w-20 h-8 bg-white m-2"
           onClick={() => {
             state.push([false]);
@@ -221,7 +285,7 @@ function App() {
           }}
         >
           add sound
-        </div>
+        </div> */}
       </div>
     </div>
   );
