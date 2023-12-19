@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
+import Blog from "./Blog";
 
 interface stateSetup {
   hh: Array<boolean>;
@@ -111,6 +112,7 @@ const DrumRow = ({ data }: { data: drumRowProps }) => {
 function App() {
   const audioContext = new AudioContext();
   const [loading, setLoading] = useState(true);
+  const [inBlog, setInBlog] = useState(false);
   const [sourceBuffers, setSourceBuffers] = useState<Array<AudioBuffer>>([]);
   const [soundNames, setSoundNames] = useState<Array<string>>([]);
   const [playing, setPlaying] = useState(false);
@@ -215,7 +217,9 @@ function App() {
     setTmpBpm(value);
   };
 
-  return loading ? (
+  return inBlog ? (
+    <Blog setInBlog={setInBlog} />
+  ) : loading ? (
     <div>LOADING</div>
   ) : (
     <div className="w-screen h-screen bg-blue-200 flex justify-center">
@@ -231,8 +235,10 @@ function App() {
           reset.current && reset.current();
         }}
       ></div> */}
-      <div className="w-[525px] flex flex-col grow-0 items-center justify-center">
-        <div className="text-2xl font-family-sans">POLYPHONIC DRUM MACHINE</div>
+      <div className="w-[525px] flex flex-col shrink-0 grow-0 items-center justify-center">
+        <div className="text-2xl font-family-sans my-4">
+          POLYPHONIC DRUM MACHINE
+        </div>
         <div className="w-full flex flex-row gap-4 items-center justify-items-stretch">
           <div className="pr-16">BPM: {bpm}</div>
           <input
@@ -242,13 +248,15 @@ function App() {
           ></input>{" "}
           <button
             onClick={() => setBpm(tmpBpm)}
-            className="w-4 h-4 bg-black"
-          ></button>
+            className="w-16 h-6 bg-white border border-1 border-black text-sm"
+          >
+            SET
+          </button>
         </div>
         <button
           className={`w-28 h-16 ${
             playing ? "bg-gray-500" : "bg-green-500"
-          } justify-center items-center flex`}
+          } justify-center items-center flex my-4`}
           onClick={() => {
             stepInterval();
           }}
@@ -275,6 +283,12 @@ function App() {
             />
           );
         })}
+        <button
+          className="my-8 w-36 h-8 bg-blue-400"
+          onClick={() => setInBlog(true)}
+        >
+          See Blog
+        </button>
         {/* <div
           className="w-20 h-8 bg-white m-2"
           onClick={() => {
