@@ -2,14 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Blog from "./Blog";
 
-interface stateSetup {
-  hh: Array<boolean>;
-  kd: Array<boolean>;
-  sn: Array<boolean>;
-  hho: Array<boolean>;
-  tom: Array<boolean>;
-}
-
 interface drumButtonProps {
   isOn: boolean;
   isStep: boolean;
@@ -77,10 +69,6 @@ const DrumRow = ({ data }: { data: drumRowProps }) => {
         </div>
         <div className="flex flex-row gap-5 items-center">
           {rowState.map((isOn, idx) => {
-            // if (idx === data.step && isOn) {
-            //   data.playSound();
-            //   console.log(`sound playing, idx`, idx);
-            // }
             const toggled = rowState
               .slice(0, idx)
               .concat(!isOn)
@@ -191,27 +179,6 @@ function App() {
     };
   };
 
-  // useEffect(() => {
-  //   const stepInterval = setInterval(() => {
-  //     // playSound(sourceBuffers.at(1), 0);
-  //     setStep((t) =>
-  //       t.map((stepN, idx) => {
-  //         const maxIdx = idx >= state.length ? 1 : state[idx].length;
-  //         const nextVal = stepN + 1 >= maxIdx ? 0 : stepN + 1;
-  //         if (state[idx][nextVal]) {
-  //           // console.log(`play sound`, state);
-  //           playSound();
-  //         }
-  //         return nextVal;
-  //       })
-  //     );
-  //   }, (1 / (bpm / 60)) * 1000);
-  //   reset.current = () => clearInterval(stepInterval);
-  //   return () => {
-  //     clearInterval(stepInterval);
-  //   };
-  // }, [bpm, state]);
-
   const handleOnChange = (event: any) => {
     const value = event.target.value;
     setTmpBpm(value);
@@ -223,18 +190,6 @@ function App() {
     <div>LOADING</div>
   ) : (
     <div className="w-screen h-screen bg-blue-200 flex justify-center">
-      {/* <div
-        className="w-4 h-4 bg-blue-500"
-        onClick={() => {
-          stepInterval();
-        }}
-      ></div>
-      <div
-        className="w-4 h-4 bg-red-500"
-        onClick={() => {
-          reset.current && reset.current();
-        }}
-      ></div> */}
       <div className="w-[525px] flex flex-col shrink-0 grow-0 items-center justify-center">
         <div className="text-2xl font-family-sans my-4">
           POLYPHONIC DRUM MACHINE
@@ -289,17 +244,6 @@ function App() {
         >
           See Blog
         </button>
-        {/* <div
-          className="w-20 h-8 bg-white m-2"
-          onClick={() => {
-            state.push([false]);
-            setState(state);
-            step.push(0);
-            setStep(step);
-          }}
-        >
-          add sound
-        </div> */}
       </div>
     </div>
   );
